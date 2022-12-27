@@ -45,3 +45,58 @@ async function displayProduct() {
 
 displayProduct()
 
+//Récuppération des données dans le panier (Local Storage)
+
+let basket = []
+
+//Fonction pour le stockage du panier dans le Local Storage
+function saveBasket() {
+  localStorage.setItem("basket", JSON.stringify(basket))
+}
+
+//Fonction pour la récupération du panier à partir du Local Storage
+function getBasket() {
+  basket = localStorage.getItem("basket")
+  if (basket == null) {
+    return []
+  } else {
+    return JSON.parse(basket)
+  }
+}
+
+//Fonction d'ajout des produits dans le panier
+function addBasket(product) {
+  basket = getBasket()
+
+  let foundSameProduct = basket.find(
+    (p) => (p.id && p.color) === (product.id && product.color)
+  )
+  console.log(foundSameProduct)
+
+  if (foundSameProduct !== undefined) {
+    foundSameProduct.quantity = foundSameProduct.quantity + product.quantity
+    saveBasket(basket)
+  } else {
+    basket.push(product)
+    saveBasket(basket)
+  }
+}
+
+// Evenement au clic : récupération des données séléctionnées et enregistrement dans le panier
+addToCart.addEventListener("click", () => {
+  let productData = {
+    id: productId,
+    quantity: parseInt(quantity.value),
+    color: colors.value,
+  }
+
+  console.log(productData);
+
+  if (productData.color === "") {
+    alert("Veuillez séléctionner une couleur")
+  } else if (productData.quantity === 0) {
+    alert("Veuillez séléctionner une quantité")
+  } else {
+      addBasket(productData)
+  }
+})
