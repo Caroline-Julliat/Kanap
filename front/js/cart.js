@@ -1,10 +1,13 @@
 let allProducts = []
+let basket = []
 
 // Récuppération des données de l'API
 async function fetchProducts() {
   await fetch("http://localhost:3000/api/products")
     .then((res) => res.json())
     .then((data) => (allProducts = data))
+
+  console.log(allProducts)
 }
 
 //Fonction pour la récupération du panier à partir du Local Storage
@@ -18,7 +21,7 @@ function getBasket() {
   }
 }
 
-// Affichage du panier
+// Fonction de création des éléments du panier dans le DOM
 
 async function displayCartProducts() {
   await fetchProducts()
@@ -28,7 +31,7 @@ async function displayCartProducts() {
     selectedProduct = allProducts.filter(
       (product) => product._id == basket[i].id
     )
-    console.log(basket);
+    console.log(basket)
 
     const cartItemsContainer = document.getElementById("cart__items")
 
@@ -108,7 +111,32 @@ async function displayCartProducts() {
   }
 }
 
-displayCartProducts()
+//Fonction d'affichage des produits et des évenements
+
+async function linkBasketToLS() {
+  await displayCartProducts()
+  const itemInputsQuantity = document.querySelectorAll(".itemQuantity")
+  const itemBtnDelete = document.querySelectorAll(".deleteItem")
+  
+  basket = getBasket()
+
+  itemInputsQuantity.forEach((itemInput) => {
+    itemInput.addEventListener("change", (e) => {
+      let getIdForChange = e.path[4].dataset.id
+      let getColorForChange = e.path[4].dataset.color
+      let getValueForChange = parseInt(e.target.value)
+      let foundProductSelected = basket.find(
+        (p) => (p.id && p.color) === (getIdForChange && getColorForChange)
+      )
+
+      foundProductSelected.quantity = getValueForChange
+      localStorage.setItem("basket", JSON.stringify(basket))
+    })
+  })
 
 
+}
 
+linkBasketToLS()
+
+// Modification de la quantité
