@@ -21,7 +21,7 @@ function getBasket() {
   }
 }
 
-// Fonction de création des éléments du panier dans le DOM
+// Fonction d'affichage des produits
 
 async function displayCartProducts() {
   await fetchProducts()
@@ -31,7 +31,6 @@ async function displayCartProducts() {
     selectedProduct = allProducts.filter(
       (product) => product._id == basket[i].id
     )
-    console.log(basket)
 
     const cartItemsContainer = document.getElementById("cart__items")
 
@@ -111,12 +110,12 @@ async function displayCartProducts() {
   }
 }
 
-//Fonction d'affichage des produits et des évenements
+//Fonction pour lier les paramètre du panier au local Storage
 
 async function linkBasketToLS() {
   await displayCartProducts()
   const itemInputsQuantity = document.querySelectorAll(".itemQuantity")
-  const itemBtnDelete = document.querySelectorAll(".deleteItem")
+  const itemButtonsDelete = document.querySelectorAll(".deleteItem")
   
   basket = getBasket()
 
@@ -125,12 +124,27 @@ async function linkBasketToLS() {
       let getIdForChange = e.path[4].dataset.id
       let getColorForChange = e.path[4].dataset.color
       let getValueForChange = parseInt(e.target.value)
-      let foundProductSelected = basket.find(
+      let foundProductToChange = basket.find(
         (p) => (p.id && p.color) === (getIdForChange && getColorForChange)
       )
 
-      foundProductSelected.quantity = getValueForChange
+      foundProductToChange.quantity = getValueForChange
       localStorage.setItem("basket", JSON.stringify(basket))
+    })
+  })
+
+  itemButtonsDelete.forEach((itemButton) => {
+    itemButton.addEventListener("click", (e) => {
+      let getIdForDelete = e.path[4].dataset.id
+      let getColorForDelete = e.path[4].dataset.color
+      
+      basket = basket.filter(
+        (p) => (p.id && p.color) !== (getIdForDelete && getColorForDelete)
+      )
+
+      localStorage.setItem("basket", JSON.stringify(basket))
+
+      location.reload()
     })
   })
 
@@ -139,4 +153,3 @@ async function linkBasketToLS() {
 
 linkBasketToLS()
 
-// Modification de la quantité
