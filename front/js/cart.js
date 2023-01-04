@@ -23,9 +23,12 @@ function getBasket() {
 
 // Fonction d'affichage des produits
 
-async function displayCartProducts() {
-  await fetchProducts()
+function displayCartProducts() {
   basket = getBasket()
+  const totalQuantityContainer = document.getElementById("totalQuantity")
+  const totalPriceContainer = document.getElementById("totalPrice")
+  let totalQuantity = 0
+  let totalPrice = 0
 
   for (let i = 0; i < basket.length; i++) {
     selectedProduct = allProducts.filter(
@@ -107,18 +110,21 @@ async function displayCartProducts() {
     divQuantity.appendChild(inputQuantity)
 
     divDelete.appendChild(pDelete)
+
+    //Calcul et affichage total quantité
+    totalQuantity += basket[i].quantity
+    totalQuantityContainer.textContent = totalQuantity
+
+    //Calcul et affichage total prix
+    totalPrice += basket[i].quantity * selectedProduct[0].price
+    totalPriceContainer.textContent = totalPrice
   }
 }
 
-//Fonction pour lier les paramètre du panier au local Storage
-
-async function linkBasketToLS() {
-  await displayCartProducts()
+// Changer la quantité d'un produit
+function quantityChange() {
   const itemInputsQuantity = document.querySelectorAll(".itemQuantity")
-  const itemButtonsDelete = document.querySelectorAll(".deleteItem")
-  
   basket = getBasket()
-
   itemInputsQuantity.forEach((itemInput) => {
     itemInput.addEventListener("change", (e) => {
       let getIdForChange = e.path[4].dataset.id
@@ -130,14 +136,21 @@ async function linkBasketToLS() {
 
       foundProductToChange.quantity = getValueForChange
       localStorage.setItem("basket", JSON.stringify(basket))
+
+      location.reload()
     })
   })
+}
 
+// Supprimer un produit du panier
+function deleteProduct() {
+  const itemButtonsDelete = document.querySelectorAll(".deleteItem")
+  basket = getBasket()
   itemButtonsDelete.forEach((itemButton) => {
     itemButton.addEventListener("click", (e) => {
       let getIdForDelete = e.path[4].dataset.id
       let getColorForDelete = e.path[4].dataset.color
-      
+
       basket = basket.filter(
         (p) => (p.id && p.color) !== (getIdForDelete && getColorForDelete)
       )
@@ -147,9 +160,143 @@ async function linkBasketToLS() {
       location.reload()
     })
   })
-
-
 }
 
-linkBasketToLS()
+async function displayAndSettingProducts() {
+  await fetchProducts()
+  await displayCartProducts()
+  quantityChange()
+  deleteProduct()
+}
 
+displayAndSettingProducts()
+
+//Controle du formulaire
+
+const formDiv = document.querySelectorAll(".cart__order__form__question")
+const regexText = /^[a-z àâäçéèêëîïôöùûüÿ'-]+$/i
+const regexAddress = /^[0-9a-z àâäçéèêëîïôöùûüÿ'-]+$/i
+const regexEmail = /^[\w_.-]+@[\w-]+\.[a-z]{2,4}$/i
+
+let firstName, lastName, address, city, email
+
+function firstNameChecker(value) {
+  const firstNameErrorMsg = document.getElementById("firstNameErrorMsg")
+  if (!value.match(regexText)) {
+    firstNameErrorMsg.textContent = "Veuillez rentrer un prénom valide"
+  } else {
+    firstNameErrorMsg.textContent = ""
+    firstName = value
+  }
+}
+
+function lastNameChecker(value) {
+  const lastNameErrorMsg = document.getElementById("lastNameErrorMsg")
+  if (!value.match(regexText)) {
+    lastNameErrorMsg.textContent = "Veuillez rentrer un nom valide"
+  } else {
+    lastNameErrorMsg.textContent = ""
+    lastName = value
+  }
+}
+
+function adressChecker(value) {
+  const addressErrorMsg = document.getElementById("addressErrorMsg")
+  if (!value.match(regexAddress)) {
+    addressErrorMsg.textContent = "Veuillez rentrer une adresse valide"
+  } else {
+    addressErrorMsg.textContent = ""
+    address = value
+  }
+}
+
+function cityChecker(value) {
+  const cityErrorMsg = document.getElementById("cityErrorMsg")
+  if (!value.match(regexText)) {
+    cityErrorMsg.textContent = "Veuillez rentrer un nom de ville valide"
+  } else {
+    cityErrorMsg.textContent = ""
+    city = value
+  }
+}
+
+function emailChecker(value) {
+  const emailErrorMsg = document.getElementById("emailErrorMsg")
+  if (!value.match(regexEmail)) {
+    emailErrorMsg.textContent = "Veuillez rentrer un email valide"
+  } else {
+    emailErrorMsg.textContent = ""
+    email = value
+  }
+}
+
+formDiv.forEach((input) => {
+  input.addEventListener("input", (e) => {
+    if (e.target.id === "firstName") {
+      firstNameChecker(e.target.value)
+    } else if (e.target.id === "lastName") {
+      lastNameChecker(e.target.value)
+    } else if (e.target.id === "address") {
+      adressChecker(e.target.value)
+    } else if (e.target.id === "city") {
+      cityChecker(e.target.value)
+    } else if (e.target.id === "email") {
+      emailChecker(e.target.value)
+    }
+  })
+})
+
+const form = document.querySelector(".cart__order__form")
+let orderPostRequest = []
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault()
+  if (firstName && lastName && address && city && email) {
+    let arrayIdProducts = []
+    for (let i = 0; i < basket.length; i++) {
+      arrayIdProducts.push(basket[i].id)
+    }
+    let bodyRequest = {
+      contact: {
+        firstName: firstName,
+        lastName: lastName,
+        address: address,
+        city: city,
+        email: email,
+      },
+      products: arrayIdProducts,
+    }
+
+    // async function FetchPostRequest () {
+
+    async function FetchPostRequest() {
+      await fetch("http://localhost:3000/api/products/order", {
+        method: "POST",
+        body: JSON.stringify(bodyRequest),
+        headers: {
+          Accept: "application/json; charset=UTF-8",
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => orderId = data.orderId)
+
+        console.log(orderId);
+
+        // firstName.value = ""
+        // lastName.value = ""
+        // address.value = ""
+        // city.value = ""
+        // email.value = ""
+
+
+        alert("Votre commande à bien été enregistré")
+
+        window.location.href =`./confirmation.html?orderId=${orderId}`
+    }
+
+    FetchPostRequest()
+
+
+  }
+})
