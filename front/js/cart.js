@@ -1,5 +1,27 @@
+// VARIABLE UTILISÉE SUR TOUTE LA PAGE :
+// Tableau avec tout les produits de l'API
 let allProducts = []
+// Tableau avec tous les produits du panier(local storage)
 let basket = []
+
+//VARIABLES UTILISÉE POUR LA VERIFICATION DU FORMULAIRE
+const form = document.querySelector(".cart__order__form")
+const formDiv = document.querySelectorAll(".cart__order__form__question")
+//Regex
+const regexText = /^[a-z àâäçéèêëîïôöùûüÿ'-]+$/i
+const regexAddress = /^[0-9a-z àâäçéèêëîïôöùûüÿ'-]+$/i
+const regexEmail = /^[\w_.-]+@[\w-]+\.[a-z]{2,4}$/i
+//Variable pour la vérification avant l'envoi du formulaire
+//Si une des variables est null : pas d'envoi à l'API
+//Si la les 5 variables sont afféctées d'une valeur : envoi de la requête à l'API
+let firstNameValue = null
+let lastNameValue = null
+let addressValue = null
+let cityValue = null
+let emailValue = null
+//variable qui recueillera le numéro de commande
+let orderId = null
+
 
 // Récuppération des données de l'API
 async function fetchProducts() {
@@ -10,7 +32,23 @@ async function fetchProducts() {
   console.log(allProducts)
 }
 
-//Fonction pour la récupération du panier à partir du Local Storage
+// Envoi des données vers l'API
+async function fetchPostRequest(dataToSend) {
+  await fetch("http://localhost:3000/api/products/order", {
+    method: "POST",
+    body: JSON.stringify(dataToSend),
+    headers: {
+      Accept: "application/json; charset=UTF-8",
+      "Content-Type": "application/json",
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => (orderId = data.orderId))
+
+  console.log(orderId)
+}
+
+//Récupération du panier à partir du Local Storage
 function getBasket() {
   basket = localStorage.getItem("basket")
 
@@ -21,282 +59,245 @@ function getBasket() {
   }
 }
 
-// Fonction d'affichage des produits
+//Stockage du panier dans le Local Storage
+function saveBasket() {
+  localStorage.setItem("basket", JSON.stringify(basket))
+}
 
-function displayCartProducts() {
-  basket = getBasket()
-  const totalQuantityContainer = document.getElementById("totalQuantity")
-  const totalPriceContainer = document.getElementById("totalPrice")
+//Calcul de la quantité
+function sumQuantity(array) {
   let totalQuantity = 0
-  let totalPrice = 0
-
-  for (let i = 0; i < basket.length; i++) {
-    selectedProduct = allProducts.filter(
-      (product) => product._id == basket[i].id
-    )
-
-    const cartItemsContainer = document.getElementById("cart__items")
-
-    const article = document.createElement("article")
-    article.classList.add("cart__item")
-    article.dataset.id = basket[i].id
-    article.dataset.color = basket[i].color
-
-    const divImg = document.createElement("div")
-    divImg.classList.add("cart__item__img")
-
-    const img = document.createElement("img")
-    img.src = selectedProduct[0].imageUrl
-    img.alt = selectedProduct[0].altTxt
-
-    const divContent = document.createElement("div")
-    divContent.classList.add("cart__item__content")
-
-    const divContentDescription = document.createElement("div")
-    divContentDescription.classList.add("cart__item__content__description")
-
-    const h2Name = document.createElement("h2")
-    h2Name.textContent = selectedProduct[0].name
-
-    const pColor = document.createElement("p")
-    pColor.textContent = basket[i].color
-
-    const pPrice = document.createElement("p")
-    pPrice.textContent = selectedProduct[0].price + " €"
-
-    const divContentSetting = document.createElement("div")
-    divContentSetting.classList.add("cart__item__content__settings")
-
-    const divQuantity = document.createElement("div")
-    divQuantity.classList.add("cart__item__content__settings__quantity")
-
-    const pQuantity = document.createElement("p")
-    pQuantity.textContent = "Qté : "
-
-    const inputQuantity = document.createElement("input")
-    inputQuantity.type = "number"
-    inputQuantity.classList.add("itemQuantity")
-    inputQuantity.name = "itemQuantity"
-    inputQuantity.min = "1"
-    inputQuantity.max = "100"
-    inputQuantity.setAttribute("value", "0")
-    inputQuantity.value = basket[i].quantity
-
-    const divDelete = document.createElement("div")
-    divDelete.classList.add("cart__item__content__settings__delete")
-
-    const pDelete = document.createElement("p")
-    pDelete.classList.add("deleteItem")
-    pDelete.textContent = "Supprimer"
-
-    cartItemsContainer.appendChild(article)
-
-    article.appendChild(divImg)
-    article.appendChild(divContent)
-
-    divImg.appendChild(img)
-
-    divContent.appendChild(divContentDescription)
-    divContent.appendChild(divContentSetting)
-
-    divContentDescription.appendChild(h2Name)
-    divContentDescription.appendChild(pColor)
-    divContentDescription.appendChild(pPrice)
-
-    divContentSetting.appendChild(divQuantity)
-    divContentSetting.appendChild(divDelete)
-
-    divQuantity.appendChild(pQuantity)
-    divQuantity.appendChild(inputQuantity)
-
-    divDelete.appendChild(pDelete)
-
-    //Calcul et affichage total quantité
-    totalQuantity += basket[i].quantity
-    totalQuantityContainer.textContent = totalQuantity
-
-    //Calcul et affichage total prix
-    totalPrice += basket[i].quantity * selectedProduct[0].price
-    totalPriceContainer.textContent = totalPrice
+  if (basket.length > 0) {
+    totalQuantity = array
+      .map((item) => item.quantity)
+      .reduce((a, b) => a + b)
+    return totalQuantity
+  } else {
+    return totalQuantity
   }
 }
 
-// Changer la quantité d'un produit
-function quantityChange() {
-  const itemInputsQuantity = document.querySelectorAll(".itemQuantity")
+//Calcul du prix
+function sumPrice() {
+  let totalPrice = 0
+  for (let i = 0; i < basket.length; i++) {
+    const selectedProduct = allProducts.find(
+      (product) => product._id == basket[i].id
+    )
+    totalPrice += basket[i].quantity * selectedProduct.price
+  }
+  return totalPrice
+}
+
+// Afichage de la quantité et du prix
+function displayQuantityPrice() {
+  const totalQuantityContainer = document.getElementById("totalQuantity")
+  const totalPriceContainer = document.getElementById("totalPrice")
+  totalQuantityContainer.textContent = sumQuantity(basket)
+  totalPriceContainer.textContent = sumPrice()
+}
+
+// Affichage des produits
+function displayCartProducts() {
   basket = getBasket()
+
+  for (let i = 0; i < basket.length; i++) {
+    const selectedProduct = allProducts.find(
+      (product) => product._id == basket[i].id
+    )
+    document.getElementById("cart__items").innerHTML += `
+    <article class="cart__item" data-id="${basket[i].id}" data-color="${basket[i].color}">
+    <div class="cart__item__img">
+      <img src="${selectedProduct.imageUrl}" alt="${selectedProduct.altTxt}">
+    </div>
+    <div class="cart__item__content">
+      <div class="cart__item__content__description">
+        <h2>${selectedProduct.name}</h2>
+        <p>${basket[i].color}</p>
+        <p>${selectedProduct.price} €</p>
+      </div>
+      <div class="cart__item__content__settings">
+        <div class="cart__item__content__settings__quantity">
+          <p>Qté : </p>
+          <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${basket[i].quantity}">
+        </div>
+        <div class="cart__item__content__settings__delete">
+          <p class="deleteItem">Supprimer</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  `
+  }
+  displayQuantityPrice()
+}
+
+// Changer la quantité
+function changeQuantity() {
+  const itemInputsQuantity = document.querySelectorAll(".itemQuantity")
   itemInputsQuantity.forEach((itemInput) => {
     itemInput.addEventListener("change", (e) => {
-      let getIdForChange = e.path[4].dataset.id
-      let getColorForChange = e.path[4].dataset.color
-      let getValueForChange = parseInt(e.target.value)
-      let foundProductToChange = basket.find(
+      let newValue = parseInt(e.target.value)
+      let articleSelected = itemInput.closest("article")
+      let getIdForChange = articleSelected.dataset.id
+      let getColorForChange = articleSelected.dataset.color
+      let foundProductFromBasket = basket.find(
         (p) => (p.id && p.color) === (getIdForChange && getColorForChange)
       )
-
-      foundProductToChange.quantity = getValueForChange
-      localStorage.setItem("basket", JSON.stringify(basket))
-
-      location.reload()
+      foundProductFromBasket.quantity = newValue
+      saveBasket()
+      displayQuantityPrice()
     })
   })
 }
 
-// Supprimer un produit du panier
+// Supprimer un produit
 function deleteProduct() {
   const itemButtonsDelete = document.querySelectorAll(".deleteItem")
-  basket = getBasket()
   itemButtonsDelete.forEach((itemButton) => {
     itemButton.addEventListener("click", (e) => {
-      let getIdForDelete = e.path[4].dataset.id
-      let getColorForDelete = e.path[4].dataset.color
-
-      basket = basket.filter(
-        (p) => (p.id && p.color) !== (getIdForDelete && getColorForDelete)
-      )
-
-      localStorage.setItem("basket", JSON.stringify(basket))
-
-      location.reload()
+      let articleSelected = itemButton.closest("article")
+      let getIdForDelete = articleSelected.dataset.id
+      let getColorForDelete = articleSelected.dataset.color
+      if(confirm("Souhaitez-vous vraiment supprimer ce produit")){
+        basket = basket.filter(
+          (p) => (p.id && p.color) !== (getIdForDelete && getColorForDelete)
+        )
+        saveBasket()
+        displayQuantityPrice()
+        articleSelected.remove()
+      }return
     })
   })
 }
 
-async function displayAndSettingProducts() {
+
+// Initiallisation de l'affichage et de la modification du panier
+async function cartInit() {
   await fetchProducts()
   await displayCartProducts()
-  quantityChange()
+  changeQuantity()
   deleteProduct()
 }
 
-displayAndSettingProducts()
+cartInit()
+
 
 //Controle du formulaire
-
-const formDiv = document.querySelectorAll(".cart__order__form__question")
-const regexText = /^[a-z àâäçéèêëîïôöùûüÿ'-]+$/i
-const regexAddress = /^[0-9a-z àâäçéèêëîïôöùûüÿ'-]+$/i
-const regexEmail = /^[\w_.-]+@[\w-]+\.[a-z]{2,4}$/i
-
-let firstName, lastName, address, city, email
-
-function firstNameChecker(value) {
-  const firstNameErrorMsg = document.getElementById("firstNameErrorMsg")
-  if (!value.match(regexText)) {
-    firstNameErrorMsg.textContent = "Veuillez rentrer un prénom valide"
+function checker(value, regex) {
+  if (value.match(regex)) {
+    return true
   } else {
-    firstNameErrorMsg.textContent = ""
-    firstName = value
-  }
-}
-
-function lastNameChecker(value) {
-  const lastNameErrorMsg = document.getElementById("lastNameErrorMsg")
-  if (!value.match(regexText)) {
-    lastNameErrorMsg.textContent = "Veuillez rentrer un nom valide"
-  } else {
-    lastNameErrorMsg.textContent = ""
-    lastName = value
-  }
-}
-
-function adressChecker(value) {
-  const addressErrorMsg = document.getElementById("addressErrorMsg")
-  if (!value.match(regexAddress)) {
-    addressErrorMsg.textContent = "Veuillez rentrer une adresse valide"
-  } else {
-    addressErrorMsg.textContent = ""
-    address = value
-  }
-}
-
-function cityChecker(value) {
-  const cityErrorMsg = document.getElementById("cityErrorMsg")
-  if (!value.match(regexText)) {
-    cityErrorMsg.textContent = "Veuillez rentrer un nom de ville valide"
-  } else {
-    cityErrorMsg.textContent = ""
-    city = value
-  }
-}
-
-function emailChecker(value) {
-  const emailErrorMsg = document.getElementById("emailErrorMsg")
-  if (!value.match(regexEmail)) {
-    emailErrorMsg.textContent = "Veuillez rentrer un email valide"
-  } else {
-    emailErrorMsg.textContent = ""
-    email = value
+    return false
   }
 }
 
 formDiv.forEach((input) => {
   input.addEventListener("input", (e) => {
-    if (e.target.id === "firstName") {
-      firstNameChecker(e.target.value)
-    } else if (e.target.id === "lastName") {
-      lastNameChecker(e.target.value)
-    } else if (e.target.id === "address") {
-      adressChecker(e.target.value)
-    } else if (e.target.id === "city") {
-      cityChecker(e.target.value)
-    } else if (e.target.id === "email") {
-      emailChecker(e.target.value)
+    switch (e.target.id) {
+      case "firstName":
+        const firstNameErrorMsg = document.getElementById("firstNameErrorMsg")
+        if (checker(e.target.value, regexText) == false) {
+          firstNameErrorMsg.textContent = "Veuillez rentrer un prénom valide"
+          firstNameValue = null
+        } else {
+          firstNameErrorMsg.textContent = ""
+          firstNameValue = e.target.value
+        }
+        break
+
+      case "lastName":
+        const lastNameErrorMsg = document.getElementById("lastNameErrorMsg")
+        if (checker(e.target.value, regexText) == false) {
+          lastNameErrorMsg.textContent = "Veuillez rentrer un nom valide"
+          lastNameValue = null
+        } else {
+          lastNameErrorMsg.textContent = ""
+          lastNameValue = e.target.value
+        }
+        break
+
+      case "address":
+        const addressErrorMsg = document.getElementById("addressErrorMsg")
+        if (checker(e.target.value, regexAddress) == false) {
+          addressErrorMsg.textContent = "Veuillez rentrer une adresse valide"
+          addressValue = null
+        } else {
+          addressErrorMsg.textContent = ""
+          addressValue = e.target.value
+        }
+        break
+
+      case "city":
+        const cityErrorMsg = document.getElementById("cityErrorMsg")
+        if (checker(e.target.value, regexText) == false) {
+          cityErrorMsg.textContent = "Veuillez rentrer un nom de ville valide"
+          cityValue = null
+        } else {
+          cityErrorMsg.textContent = ""
+          cityValue = e.target.value
+        }
+        break
+
+      case "email":
+        const emailErrorMsg = document.getElementById("emailErrorMsg")
+        if (checker(e.target.value, regexEmail) == false) {
+          emailErrorMsg.textContent = "Veuillez rentrer un email valide"
+          emailValue = null
+        } else {
+          emailErrorMsg.textContent = ""
+          emailValue = e.target.value
+        }
+        break
+      default:
+        null
     }
   })
 })
 
-const form = document.querySelector(".cart__order__form")
-let orderPostRequest = []
-
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault()
-  if (firstName && lastName && address && city && email) {
+  if (basket.length === 0) {
+    alert("votre panier est vide. Veuillez ajouter des produits")
+    window.location.href = "./index.html"
+  } else if (
+    //si toute les variables "Champs" ne sont pas null
+    firstNameValue &&
+    lastNameValue &&
+    addressValue &&
+    cityValue &&
+    emailValue
+  ) {
+    //Création du tableau de produit
     let arrayIdProducts = []
     for (let i = 0; i < basket.length; i++) {
       arrayIdProducts.push(basket[i].id)
     }
+    //Création du corps de la requête contenant l'objet contact et le tableau de produits
     let bodyRequest = {
       contact: {
-        firstName: firstName,
-        lastName: lastName,
-        address: address,
-        city: city,
-        email: email,
+        firstName: firstNameValue,
+        lastName: lastNameValue,
+        address: addressValue,
+        city: cityValue,
+        email: emailValue,
       },
       products: arrayIdProducts,
     }
-
-    // async function FetchPostRequest () {
-
-    async function FetchPostRequest() {
-      await fetch("http://localhost:3000/api/products/order", {
-        method: "POST",
-        body: JSON.stringify(bodyRequest),
-        headers: {
-          Accept: "application/json; charset=UTF-8",
-          "Content-Type": "application/json",
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => orderId = data.orderId)
-
-        console.log(orderId);
-
-        // firstName.value = ""
-        // lastName.value = ""
-        // address.value = ""
-        // city.value = ""
-        // email.value = ""
-
-
-        alert("Votre commande à bien été enregistré")
-
-        window.location.href =`./confirmation.html?orderId=${orderId}`
-    }
-
-    FetchPostRequest()
-
-
+    //Envoi de la requete POST
+    await fetchPostRequest(bodyRequest)
+    //Vider le formulaire après commande
+    firstName.value = ""
+    lastName.value = ""
+    address.value = ""
+    city.value = ""
+    email.value = ""
+    //Vider le panier après commande
+    basket = []
+    saveBasket()
+    //Redirection vers la page de confirmation
+    window.location.href = `./confirmation.html?orderId=${orderId}`
+  } else {
+    alert("Merci de remplir correctement le formulaire")
   }
 })

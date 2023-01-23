@@ -5,19 +5,17 @@ const productId = url.searchParams.get("id")
 
 let allProducts = []
 let pageProduct = []
+let basket = []
 
-//Fonction de récuppération des données
+// Récuppération des données de l'API
 async function fetchProducts() {
-  await fetch("http://localhost:3000/api/products")
+  await fetch("http://localhost:3000/api/products/" + productId)
     .then((res) => res.json())
-    .then((data) => (allProducts = data))
-
-  pageProduct = allProducts.filter((product) => product._id == productId)
-  console.log("pageProduct =")
-  console.log(pageProduct)
+    .then((data) => (pageProduct = data))
+  console.log("pageProduct =", pageProduct)
 }
 
-// Fonction d'affichage des données
+// Affichage des données
 async function displayProduct() {
   await fetchProducts()
 
@@ -28,14 +26,14 @@ async function displayProduct() {
   const itemDescription = document.getElementById("description")
   const itemColors = document.getElementById("colors")
 
-  itemImg.src = pageProduct[0].imageUrl
-  itemImg.alt = pageProduct[0].altTxt
+  itemImg.src = pageProduct.imageUrl
+  itemImg.alt = pageProduct.altTxt
   itemImgContainer.appendChild(itemImg)
-  itemName.textContent = pageProduct[0].name
-  itemPrice.textContent = pageProduct[0].price
-  itemDescription.textContent = pageProduct[0].description
+  itemName.textContent = pageProduct.name
+  itemPrice.textContent = pageProduct.price
+  itemDescription.textContent = pageProduct.description
 
-  for (const color of pageProduct[0].colors) {
+  for (const color of pageProduct.colors) {
     let colorOption = document.createElement("option")
     colorOption.setAttribute("value", color)
     colorOption.textContent = color
@@ -45,16 +43,12 @@ async function displayProduct() {
 
 displayProduct()
 
-//Récuppération des données dans le panier (Local Storage)
-
-let basket = []
-
-//Fonction pour le stockage du panier dans le Local Storage
+//Stockage du panier dans le Local Storage
 function saveBasket() {
   localStorage.setItem("basket", JSON.stringify(basket))
 }
 
-//Fonction pour la récupération du panier à partir du Local Storage
+//Récupération du panier à partir du Local Storage
 function getBasket() {
   basket = localStorage.getItem("basket")
   if (basket == null) {
@@ -64,15 +58,14 @@ function getBasket() {
   }
 }
 
-//Fonction d'ajout des produits dans le panier
+//Ajout des produits dans le panier
 function addBasket(product) {
   basket = getBasket()
+  console.log(basket)
 
   let foundSameProduct = basket.find(
     (p) => (p.id && p.color) === (product.id && product.color)
   )
-  console.log(foundSameProduct)
-
   if (foundSameProduct !== undefined) {
     foundSameProduct.quantity = foundSameProduct.quantity + product.quantity
     saveBasket(basket)
@@ -90,13 +83,14 @@ addToCart.addEventListener("click", () => {
     color: colors.value,
   }
 
-  console.log(productData);
+  console.log(productData)
 
   if (productData.color === "") {
     alert("Veuillez séléctionner une couleur")
-  } else if (productData.quantity === 0) {
-    alert("Veuillez séléctionner une quantité")
+  } else if (productData.quantity <= 0 || productData.quantity > 100) {
+    alert("Veuillez séléctionner une quantité entre 1 et 100")
   } else {
-      addBasket(productData)
+    addBasket(productData)
+    alert("Le produit a bien été ajouté au panier")
   }
 })
