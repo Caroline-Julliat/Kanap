@@ -3,7 +3,6 @@ const pageUrl = window.location.href
 const url = new URL(pageUrl)
 const productId = url.searchParams.get("id")
 
-let allProducts = []
 let pageProduct = []
 let basket = []
 
@@ -12,7 +11,11 @@ async function fetchProducts() {
   await fetch("http://localhost:3000/api/products/" + productId)
     .then((res) => res.json())
     .then((data) => (pageProduct = data))
-  console.log("pageProduct =", pageProduct)
+    .catch((error) => {
+      console.log(
+        "Il y a eu un problème avec l'opération fetch : " + error.message
+      )
+    })
 }
 
 // Affichage des données
@@ -43,21 +46,6 @@ async function displayProduct() {
 
 displayProduct()
 
-//Stockage du panier dans le Local Storage
-function saveBasket() {
-  localStorage.setItem("basket", JSON.stringify(basket))
-}
-
-//Récupération du panier à partir du Local Storage
-function getBasket() {
-  basket = localStorage.getItem("basket")
-  if (basket == null) {
-    return []
-  } else {
-    return JSON.parse(basket)
-  }
-}
-
 //Ajout des produits dans le panier
 function addBasket(product) {
   basket = getBasket()
@@ -68,12 +56,17 @@ function addBasket(product) {
   )
   if (foundSameProduct !== undefined) {
     foundSameProduct.quantity = foundSameProduct.quantity + product.quantity
+    if (foundSameProduct.quantity > 100) {
+      foundSameProduct.quantity = 100
+      alert("Vous ne pouvez pas dépasser la quantité maximal de 100 sur ce produit")
+    }
     saveBasket(basket)
   } else {
     basket.push(product)
     saveBasket(basket)
   }
 }
+
 
 // Evenement au clic : récupération des données séléctionnées et enregistrement dans le panier
 addToCart.addEventListener("click", () => {

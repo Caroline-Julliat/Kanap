@@ -3,6 +3,8 @@
 let allProducts = []
 // Tableau avec tous les produits du panier(local storage)
 let basket = []
+//variable qui recueillera le numéro de commande
+let orderId = null
 
 //VARIABLES UTILISÉE POUR LA VERIFICATION DU FORMULAIRE
 const form = document.querySelector(".cart__order__form")
@@ -19,17 +21,17 @@ let lastNameValue = null
 let addressValue = null
 let cityValue = null
 let emailValue = null
-//variable qui recueillera le numéro de commande
-let orderId = null
-
 
 // Récuppération des données de l'API
 async function fetchProducts() {
   await fetch("http://localhost:3000/api/products")
     .then((res) => res.json())
     .then((data) => (allProducts = data))
-
-  console.log(allProducts)
+    .catch((error) => {
+      console.log(
+        "Il y a eu un problème avec l'opération fetch : " + error.message
+      )
+    })
 }
 
 // Envoi des données vers l'API
@@ -44,33 +46,18 @@ async function fetchPostRequest(dataToSend) {
   })
     .then((res) => res.json())
     .then((data) => (orderId = data.orderId))
-
-  console.log(orderId)
-}
-
-//Récupération du panier à partir du Local Storage
-function getBasket() {
-  basket = localStorage.getItem("basket")
-
-  if (basket == null) {
-    return []
-  } else {
-    return JSON.parse(basket)
-  }
-}
-
-//Stockage du panier dans le Local Storage
-function saveBasket() {
-  localStorage.setItem("basket", JSON.stringify(basket))
+    .catch((error) => {
+      console.log(
+        "Il y a eu un problème avec l'opération fetch (POST) : " + error.message
+      )
+    })
 }
 
 //Calcul de la quantité
 function sumQuantity(array) {
   let totalQuantity = 0
   if (basket.length > 0) {
-    totalQuantity = array
-      .map((item) => item.quantity)
-      .reduce((a, b) => a + b)
+    totalQuantity = array.map((item) => item.quantity).reduce((a, b) => a + b)
     return totalQuantity
   } else {
     return totalQuantity
@@ -144,9 +131,14 @@ function changeQuantity() {
       let foundProductFromBasket = basket.find(
         (p) => (p.id && p.color) === (getIdForChange && getColorForChange)
       )
-      foundProductFromBasket.quantity = newValue
-      saveBasket()
-      displayQuantityPrice()
+      if (newValue <= 0 || newValue > 100) {
+        alert("Veuillez séléctionner une quantité entre 1 et 100")
+        e.target.value = 1
+      } else {
+        foundProductFromBasket.quantity = newValue
+        saveBasket()
+        displayQuantityPrice()
+      }
     })
   })
 }
@@ -159,18 +151,18 @@ function deleteProduct() {
       let articleSelected = itemButton.closest("article")
       let getIdForDelete = articleSelected.dataset.id
       let getColorForDelete = articleSelected.dataset.color
-      if(confirm("Souhaitez-vous vraiment supprimer ce produit")){
+      if (confirm("Souhaitez-vous vraiment supprimer ce produit")) {
         basket = basket.filter(
           (p) => (p.id && p.color) !== (getIdForDelete && getColorForDelete)
         )
         saveBasket()
         displayQuantityPrice()
         articleSelected.remove()
-      }return
+      }
+      return
     })
   })
 }
-
 
 // Initiallisation de l'affichage et de la modification du panier
 async function cartInit() {
@@ -181,7 +173,6 @@ async function cartInit() {
 }
 
 cartInit()
-
 
 //Controle du formulaire
 function checker(value, regex) {

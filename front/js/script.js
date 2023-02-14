@@ -6,7 +6,11 @@ async function fetchProducts() {
   await fetch("http://localhost:3000/api/products")
     .then((res) => res.json())
     .then((data) => (allProducts = data))
-  console.log(allProducts)
+    .catch((error) => {
+      console.log(
+        "Il y a eu un problème avec l'opération fetch : " + error.message
+      )
+    })
 }
 
 //Affichage des produits
