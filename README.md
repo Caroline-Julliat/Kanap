@@ -1,7 +1,6 @@
 # Construisez un site e-commerce en JavaScript  
 
-Cinquième projet du parcours dévelopeur web chez OpenClassrooms. 
-L'objectif est __l’implémentation de manière dynamique de site e-commerce__ nommé "Kanap".    
+Cinquième projet du parcours dévelopeur web chez OpenClassrooms. L'objectif est __l’implémentation de manière dynamique du site e-commerce__ "Kanap".    
 
 Le CSS, le HTML et le back-end étaient fournis. Il était demandé d'intégrer dynamiquement les divers éléments aux pages, grâce à JavaScript et l'API. 
 
