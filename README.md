@@ -70,7 +70,7 @@ Sur cette page, l'utilisateur doit voir s’afficher son numéro de commande
 
 
 ### Prérequis pour le fonctionnement du back-end
-- Node.js et npm doivent être installé  
+- Node.js et npm doivent être installés  
 - À partir du back-end executer la commande `npm install`
 - Démarrer le serveur avec la commande `node server`
 - Le serveur doit fonctionner sur `localhost` avec le port par défaut `3000`
